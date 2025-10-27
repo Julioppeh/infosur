@@ -1,1 +1,185 @@
-#test
+# Info Sur · Generador de artículos HTML estilo Diario Sur
+
+Aplicación Flask para crear y servir artículos satíricos que siguen la plantilla `template.html` y se publican bajo URLs con slug y timestamp.
+
+## 1. Requisitos previos
+
+1. Servidor Ubuntu 22.04 o superior con acceso sudo.
+2. Dominio apuntando al servidor (por ejemplo `info-sur.com`).
+3. Python 3.11 instalado desde los repositorios oficiales.
+4. Cuenta de OpenAI con clave API válida.
+
+### 1.1 Paquetes del sistema
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y python3.11 python3.11-venv python3-pip git caddy
+```
+
+## 2. Obtener el código fuente
+
+1. Elige un directorio de trabajo (recomendado `/opt/infosur`).
+2. Clona el repositorio dentro de ese directorio.
+
+```bash
+sudo mkdir -p /opt/infosur
+sudo chown $USER:$USER /opt/infosur
+cd /opt/infosur
+git clone https://github.com/<tu-usuario>/<tu-repo>.git app
+cd app
+```
+
+> Sustituye `https://github.com/<tu-usuario>/<tu-repo>.git` por la URL real del repositorio.
+
+## 3. Crear el entorno virtual
+
+Mantén las dependencias aisladas creando un entorno virtual dentro del directorio clonado:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+deactivate
+```
+
+## 4. Configurar variables de entorno externas
+
+Guarda las variables sensibles fuera del repositorio, por ejemplo en `/etc/infosur.env`:
+
+```bash
+sudo tee /etc/infosur.env >/dev/null <<'EOF_ENV'
+FLASK_APP=info_sur.app:create_app
+OPENAI_API_KEY=tu_api_key
+EOF_ENV
+```
+
+> Reemplaza `tu_api_key` por la clave real de OpenAI.
+
+Para cargar estas variables cuando trabajes manualmente:
+```bash
+set -a
+source /etc/infosur.env
+set +a
+```
+
+## 5. Inicializar recursos de la aplicación
+
+Crea los directorios de datos y la base de datos SQLite ejecutando la factoría de Flask una vez:
+
+```bash
+cd /opt/infosur/app
+mkdir -p data/images
+source .venv/bin/activate
+python -c "from info_sur.app import create_app; create_app()"
+deactivate
+```
+
+## 6. Ejecutar en modo desarrollo (opcional)
+
+Para probar la aplicación antes del despliegue:
+
+```bash
+cd /opt/infosur/app
+source .venv/bin/activate
+set -a; source /etc/infosur.env; set +a
+flask run --host=0.0.0.0 --port=8000
+deactivate
+```
+
+Visita `http://<ip-del-servidor>:8000/editor` para acceder al editor con pestañas **Crear**, **Gestionar** y **Editar template**.
+
+## 7. Servicio systemd
+
+Automatiza el arranque con Gunicorn y systemd usando el usuario actual (`$USER`).
+
+```bash
+sudo tee /etc/systemd/system/infosur.service >/dev/null <<'EOF_SERVICE'
+[Unit]
+Description=Info Sur Flask Service
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/infosur/app
+EnvironmentFile=/etc/infosur.env
+ExecStart=/opt/infosur/app/.venv/bin/gunicorn -w 3 -b 127.0.0.1:8000 "info_sur.app:create_app()"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF_SERVICE
+```
+
+> Sustituye `ubuntu` por el usuario y grupo con los que quieras ejecutar el servicio.
+
+Después activa el servicio:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now infosur
+sudo systemctl status infosur
+```
+
+Comprueba los logs con:
+```bash
+journalctl -u infosur -f
+```
+
+## 8. Proxy inverso y TLS con Caddy
+
+Edita el archivo `/etc/caddy/Caddyfile` para que Caddy gestione TLS y sirva los estáticos.
+
+```bash
+sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF_CADDY'
+info-sur.com {
+    encode gzip
+
+    handle_path /static/* {
+        root * /opt/infosur/app/info_sur/static
+        file_server
+    }
+
+    handle_path /images/* {
+        root * /opt/infosur/app/data/images
+        file_server
+    }
+
+    reverse_proxy 127.0.0.1:8000
+}
+EOF_CADDY
+sudo systemctl reload caddy
+```
+
+Caddy se encargará de emitir certificados TLS automáticamente mediante Let’s Encrypt.
+
+## 9. Flujo de trabajo diario
+
+- Actualizar el código: `cd /opt/infosur/app && git pull`.
+- Reinstalar dependencias si cambió `requirements.txt`: `source .venv/bin/activate && pip install -r requirements.txt`.
+- Reiniciar el servicio tras cambios: `sudo systemctl restart infosur`.
+- Copias de seguridad: respalda `data/articles.db` y `data/images/`.
+
+## 10. Estructura funcional
+
+- Editor en `/editor` con pestañas Crear, Gestionar y Editar template.
+- Recursos estáticos en `/static/` y `/images/`.
+- Artículos públicos servidos en `/<slug>-<timestamp>` usando los módulos `mod_*` de `template.html`.
+
+## 11. TODO para futuros despliegues
+
+- Añadir monitoreo de disponibilidad (Prometheus, UptimeRobot, etc.).
+- Configurar copias de seguridad automatizadas de la base de datos.
+- Implementar pruebas automatizadas antes de cada despliegue.
+- Documentar proceso de rotación de claves API y permisos de colaboradores.
+
+## 12. Recursos adicionales
+
+- [Documentación de Flask](https://flask.palletsprojects.com/)
+- [Guía oficial de Caddy](https://caddyserver.com/docs/)
+- [Referencias de AMP](https://amp.dev/documentation/)
+
+---
+
+Con estos pasos podrás desplegar Info Sur en un servidor Ubuntu desde cero, mantener las variables sensibles fuera del repositorio y operar el servicio con Caddy y systemd.
