@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Info Sur Editor</title>
+    <link rel="stylesheet" href="/static/css/editor.css" />
+</head>
+
+<body>
+    <header class="editor-header">
+        <h1>Info Sur · Generador de artículos satíricos</h1>
+        <p class="editor-subtitle">Estilo Diario Sur de Málaga con plantilla personalizable</p>
+    </header>
+
+    <main class="editor-main">
+        <section class="tabs" role="tablist" aria-label="Editor de artículos">
+            <button class="tab-button active" data-tab="create" role="tab" aria-selected="true">Crear</button>
+            <button class="tab-button" data-tab="manage" role="tab" aria-selected="false">Gestionar</button>
+            <button class="tab-button" data-tab="template" role="tab" aria-selected="false">Editar template</button>
+        </section>
+
+        <section class="tab-content active" id="tab-create" role="tabpanel">
+            <form id="create-form" class="card" aria-describedby="create-help">
+                <h2>Nueva noticia satírica</h2>
+                <label>
+                    Prompt general
+                    <textarea name="prompt" rows="5" required placeholder="Describe la noticia que quieres generar"></textarea>
+                </label>
+                <label class="slider-label">
+                    Nivel de sátira: <span id="satire-value">50</span>%
+                    <input type="range" min="0" max="100" value="50" name="satire_level" id="satire-level" />
+                    <small>0% = tono serio, 100% = sátira absurda</small>
+                </label>
+                <div class="image-prompts">
+                    <label>
+                        Prompt imagen principal (opcional)
+                        <input type="text" name="image_prompt_primary" placeholder="Describe la primera imagen" />
+                    </label>
+                    <label>
+                        Prompt imagen secundaria (opcional)
+                        <input type="text" name="image_prompt_secondary" placeholder="Describe la segunda imagen" />
+                    </label>
+                </div>
+                <button type="submit">Generar artículo</button>
+                <p id="create-help" class="form-help">El contenido se genera con la API de OpenAI usando la plantilla oficial.</p>
+                <output id="create-output" aria-live="polite"></output>
+            </form>
+        </section>
+
+        <section class="tab-content" id="tab-manage" role="tabpanel" aria-hidden="true">
+            <div class="card">
+                <h2>Artículos guardados</h2>
+                <p class="form-help">Gestiona los artículos generados. Puedes editarlos, regenerar campos o eliminarlos.</p>
+                <div id="articles-list" class="articles-list" aria-live="polite"></div>
+            </div>
+            <div class="card" id="edit-panel" hidden>
+                <h3>Editar artículo</h3>
+                <form id="edit-form">
+                    <input type="hidden" name="article_id" />
+                    <div class="grid">
+                        {% for field in article_fields %}
+                        <label>
+                            {{ field }}
+                            {% if 'cuerpo' in field or 'subtitulo' in field or 'catchline' in field %}
+                            <textarea name="{{ field }}" rows="3"></textarea>
+                            {% else %}
+                            <input type="text" name="{{ field }}" />
+                            {% endif %}
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <label>
+                        Temas (separados por comas)
+                        <input type="text" name="temas" />
+                    </label>
+                    <label>
+                        URL imagen principal
+                        <input type="text" name="image_primary" />
+                    </label>
+                    <label>
+                        URL imagen secundaria
+                        <input type="text" name="image_secondary" />
+                    </label>
+                    <button type="submit">Guardar cambios</button>
+                    <output id="edit-output" aria-live="polite"></output>
+                </form>
+            </div>
+        </section>
+
+        <section class="tab-content" id="tab-template" role="tabpanel" aria-hidden="true">
+            <div class="card">
+                <h2>Template HTML AMP</h2>
+                <p class="form-help">Edita el HTML base que se usará para renderizar los artículos. Respeta las clases <code>mod_*</code>.</p>
+                <textarea id="template-editor" rows="20" spellcheck="false"></textarea>
+                <button id="save-template">Guardar template</button>
+                <output id="template-output" aria-live="polite"></output>
+            </div>
+        </section>
+    </main>
+
+    <template id="article-item-template">
+        <article class="article-item">
+            <header>
+                <h3></h3>
+                <p class="meta"></p>
+            </header>
+            <div class="actions">
+                <a class="view" target="_blank" rel="noopener">Ver</a>
+                <button class="edit">Editar</button>
+                <button class="delete">Eliminar</button>
+            </div>
+        </article>
+    </template>
+
+    <script src="/static/js/editor.js" type="module"></script>
+</body>
+
+</html>
