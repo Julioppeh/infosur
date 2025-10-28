@@ -200,6 +200,29 @@ button:hover {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.editor-footer {
+    background: var(--card-bg);
+    border-top: 1px solid var(--border);
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 3rem;
+}
+
+.editor-footer .version-info {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+}
+
+.editor-footer code {
+    background: var(--background);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: var(--primary);
+}
+
 @media (max-width: 768px) {
     .editor-main {
         padding: 1.5rem 1rem;
@@ -213,5 +236,9 @@ button:hover {
 
     .article-item .actions {
         flex-direction: column;
+    }
+
+    .editor-footer .version-info {
+        font-size: 0.8rem;
     }
 }

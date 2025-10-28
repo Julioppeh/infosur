@@ -26,6 +26,17 @@ flask run --host=0.0.0.0 --port=8000
 
 Accede a `http://localhost:8000/editor` para usar el editor con pestañas **Crear**, **Gestionar** y **Editar template**. El contenido se guarda en una base de datos SQLite (`data/articles.db`).
 
+### Actualizar instalación existente
+
+Si ya tienes la aplicación instalada y obtienes un error 500, actualiza las dependencias:
+
+```bash
+source .venv/bin/activate
+pip install --upgrade -r requirements.txt
+```
+
+**Nota:** `flask-limiter` es opcional. La aplicación funcionará sin rate limiting si no está instalado, pero se recomienda para producción.
+
 ## Despliegue en Ubuntu con systemd y Caddy
 
 Si prefieres no crear un usuario dedicado, puedes ejecutar el servicio con tu usuario habitual (p. ej. `ubuntu`). Asegúrate de que dicho usuario tenga permisos de lectura/escritura sobre `/opt/infosur` y la base de datos.

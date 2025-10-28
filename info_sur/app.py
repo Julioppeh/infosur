@@ -7,9 +7,17 @@ from pathlib import Path
 from typing import Any, Dict
 
 from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from werkzeug.exceptions import BadRequest, NotFound
+
+# Optional rate limiting support
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    LIMITER_AVAILABLE = True
+except ImportError:
+    LIMITER_AVAILABLE = False
+    logger_import = logging.getLogger(__name__)
+    logger_import.warning("flask-limiter not installed. Rate limiting disabled. Install with: pip install flask-limiter")
 
 from .database import Base, engine
 from .services import (
@@ -25,6 +33,7 @@ from .services import (
     save_template_html,
     update_article,
 )
+from .version import get_compile_id, get_version
 
 # Configure logging
 logging.basicConfig(
@@ -43,13 +52,18 @@ def create_app() -> Flask:
         template_folder=str(Path(__file__).parent / "templates"),
     )
 
-    # Configure rate limiting
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri="memory://",
-    )
+    # Configure rate limiting (optional)
+    limiter = None
+    if LIMITER_AVAILABLE:
+        limiter = Limiter(
+            app=app,
+            key_func=get_remote_address,
+            default_limits=["200 per day", "50 per hour"],
+            storage_uri="memory://",
+        )
+        logger.info("Rate limiting enabled")
+    else:
+        logger.warning("Rate limiting disabled - flask-limiter not installed")
 
     logger.info("Info Sur application initialized")
 
@@ -59,7 +73,12 @@ def create_app() -> Flask:
 
     @app.route("/editor")
     def editor() -> str:
-        return render_template("editor.html", article_fields=ARTICLE_FIELDS)
+        return render_template(
+            "editor.html",
+            article_fields=ARTICLE_FIELDS,
+            version=get_version(),
+            compile_id=get_compile_id()
+        )
 
     @app.route("/images/<path:filename>")
     def images(filename: str):
@@ -86,7 +105,6 @@ def create_app() -> Flask:
         return jsonify(list_articles())
 
     @app.route("/api/articles", methods=["POST"])
-    @limiter.limit("10 per hour")  # Limit article generation to prevent API abuse
     def api_create_article():
         data = request.get_json(force=True)
         prompt = data.get("prompt")
@@ -96,6 +114,10 @@ def create_app() -> Flask:
             raise BadRequest("El prompt es obligatorio")
 
         logger.info(f"Creating article with prompt: {prompt[:50]}...")
+
+        # Apply rate limiting if available
+        if limiter:
+            limiter.limit("10 per hour")(lambda: None)()
 
         try:
             generation = generate_article_via_openai(prompt, satire_level, image_prompts)
