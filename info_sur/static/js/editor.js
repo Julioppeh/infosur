@@ -76,6 +76,8 @@ async function createArticle(event) {
                 message = errorText || message;
             }
             throw new Error(message.trim());
+            const errorText = await response.text();
+            throw new Error(errorText || 'Error al generar el artículo');
         }
 
         const data = await response.json();

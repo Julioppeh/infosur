@@ -38,6 +38,28 @@ a:focus-visible {
     padding: 3rem 1.5rem 2.25rem;
     text-align: center;
     box-shadow: 0 8px 24px rgba(156, 0, 19, 0.35);
+    color-scheme: light dark;
+    --background: #f5f5f5;
+    --card-bg: #ffffff;
+    --primary: #c60021;
+    --text: #1f1f1f;
+    --muted: #5f5f5f;
+    --border: #e0e0e0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+.editor-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
 }
 
 .editor-header h1 {
@@ -57,6 +79,18 @@ a:focus-visible {
 .editor-main {
     padding: clamp(1.5rem, 4vw, 3rem);
     max-width: 1180px;
+    font-size: clamp(1.8rem, 2.5vw, 2.8rem);
+}
+
+.editor-header .editor-subtitle {
+    margin-top: .5rem;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.editor-main {
+    padding: 2rem clamp(1rem, 5vw, 3rem);
+    max-width: 1200px;
     margin: 0 auto;
 }
 
@@ -90,6 +124,26 @@ a:focus-visible {
     color: var(--accent-strong);
     border-color: var(--accent);
     box-shadow: 0 10px 30px rgba(28, 31, 36, 0.08);
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.tab-button {
+    border: none;
+    background: var(--card-bg);
+    border-bottom: 3px solid transparent;
+    padding: .75rem 1.5rem;
+    border-radius: .5rem .5rem 0 0;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.tab-button.active {
+    border-color: var(--primary);
+    background: #fff1f3;
 }
 
 .tab-content {
@@ -113,6 +167,15 @@ a:focus-visible {
 .card h3 {
     margin-top: 0;
     color: var(--text-primary);
+    background: var(--card-bg);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+.card h2, .card h3 {
+    margin-top: 0;
 }
 
 label {
@@ -128,6 +191,9 @@ label small,
 .form-help {
     color: var(--text-secondary);
     font-weight: 400;
+    gap: .5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
 }
 
 textarea,
@@ -153,6 +219,12 @@ output:focus-visible {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--focus-ring);
+    padding: .75rem;
+    border: 1px solid var(--border);
+    border-radius: .5rem;
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
     background: #fff;
 }
 
@@ -186,6 +258,24 @@ button:focus-visible {
     box-shadow: 0 12px 26px rgba(156, 0, 19, 0.35);
     background: var(--accent-strong);
     outline: none;
+    min-height: 120px;
+}
+
+button {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: .5rem;
+    padding: .75rem 1.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(198, 0, 33, 0.3);
 }
 
 .slider-label input[type="range"] {
@@ -196,6 +286,12 @@ button:focus-visible {
     display: grid;
     gap: 1rem;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.form-help {
+    color: var(--muted);
+    font-size: .9rem;
 }
 
 .articles-list {
@@ -210,6 +306,11 @@ button:focus-visible {
     padding: 1.25rem;
     border-radius: 1rem;
     background: var(--surface-alt);
+    gap: .5rem;
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: .75rem;
+    background: #fff;
 }
 
 .article-item header {
@@ -226,11 +327,18 @@ button:focus-visible {
 .article-item .meta {
     color: var(--text-secondary);
     font-size: 0.9rem;
+    gap: .25rem;
+}
+
+.article-item .meta {
+    color: var(--muted);
+    font-size: .85rem;
 }
 
 .article-item .actions {
     display: flex;
     gap: 0.5rem;
+    gap: .5rem;
     flex-wrap: wrap;
 }
 
@@ -250,6 +358,11 @@ button:focus-visible {
     background: var(--accent);
     color: #fff;
     box-shadow: 0 8px 20px rgba(156, 0, 19, 0.3);
+    padding: .65rem 1.2rem;
+    border-radius: .5rem;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-weight: 600;
 }
 
 .article-item .actions button {
@@ -267,6 +380,14 @@ button:focus-visible {
 .article-item .actions button.delete:hover,
 .article-item .actions button.delete:focus-visible {
     background: #fef1f1;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    padding: .65rem 1.2rem;
+}
+
+.article-item .actions button.delete {
+    border-color: #ff5b5b;
+    color: #ff5b5b;
 }
 
 .grid {
@@ -293,6 +414,9 @@ button:focus-visible {
 
     .editor-main {
         padding: 1.5rem 1.1rem 2.5rem;
+@media (max-width: 768px) {
+    .editor-main {
+        padding: 1.5rem 1rem;
     }
 
     button,

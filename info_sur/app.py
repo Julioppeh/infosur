@@ -16,6 +16,8 @@ from flask import (
     send_from_directory,
 )
 from werkzeug.exceptions import NotFound
+from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory
+from werkzeug.exceptions import BadRequest, NotFound
 
 from .database import Base, engine
 from .services import (
@@ -70,6 +72,7 @@ def create_app() -> Flask:
         image_prompts = [p for p in data.get("image_prompts", []) if p]
         if not prompt:
             return jsonify({"error": "El prompt es obligatorio"}), 400
+            raise BadRequest("El prompt es obligatorio")
 
         try:
             generation = generate_article_via_openai(prompt, satire_level, image_prompts)
@@ -78,6 +81,7 @@ def create_app() -> Flask:
         except Exception as exc:  # pragma: no cover - defensive safeguard
             current_app.logger.exception("Error inesperado generando artículo")
             return jsonify({"error": "Error interno al generar el artículo"}), 500
+            raise BadRequest(str(exc)) from exc
         modules = generation["modules"]
 
         # Ensure autores stored as string
@@ -142,6 +146,7 @@ def create_app() -> Flask:
         html = data.get("template")
         if html is None:
             return jsonify({"error": "Falta el template"}), 400
+            raise BadRequest("Falta el template")
         save_template_html(html)
         return jsonify({"status": "saved"})
 
