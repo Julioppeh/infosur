@@ -38,7 +38,13 @@ Si prefieres no crear un usuario dedicado, puedes ejecutar el servicio con tu us
    sudo mkdir -p /opt/infosur
    sudo chown $USER:$USER /opt/infosur
    cd /opt/infosur
-   git clone https://<tu-repo>.git app
+
+   # Para clonar el repositorio público:
+   git clone https://github.com/Julioppeh/infosur.git app
+
+   # Para clonar el repositorio privado (necesitas credenciales):
+   # git clone https://<tu-token>@github.com/Julioppeh/infosur.git app
+
    cd app
    python3.11 -m venv .venv
    source .venv/bin/activate
@@ -120,6 +126,16 @@ Las URLs públicas de los artículos siguen el formato `/<slug>-<timestamp>` y r
 
 ## Notas
 
-- El generador usa el modelo `gpt-4.1` y las imágenes opcionales con `gpt-image-1`.
+- El generador usa el modelo `gpt-4o` de OpenAI y las imágenes opcionales con `dall-e-3`.
 - Puedes actualizar la plantilla base desde la pestaña «Editar template». Cada versión queda registrada en la base de datos.
-- El endpoint `/images/<filename>` sirve archivos propios que subas a `data/images/`.
+- El endpoint `/images/<filename>` sirve archivos propios que subas a `data/images/` (solo permite extensiones seguras: jpg, png, gif, webp, svg).
+- La aplicación incluye rate limiting para prevenir abuso de la API (10 artículos por hora por IP).
+- Logging configurado para facilitar debugging en producción.
+
+## Seguridad
+
+La aplicación implementa las siguientes medidas de seguridad:
+- Rate limiting en endpoints de generación de artículos
+- Validación de tipos de archivo en el endpoint de imágenes
+- Protección contra directory traversal
+- Logging de operaciones críticas

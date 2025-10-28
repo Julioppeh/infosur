@@ -1,11 +1,14 @@
 """Main Flask application for Info Sur."""
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict
 
 from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.exceptions import BadRequest, NotFound
 
 from .database import Base, engine
@@ -23,6 +26,13 @@ from .services import (
     update_article,
 )
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 
 def create_app() -> Flask:
     Base.metadata.create_all(engine)
@@ -32,6 +42,16 @@ def create_app() -> Flask:
         static_folder=str(Path(__file__).parent / "static"),
         template_folder=str(Path(__file__).parent / "templates"),
     )
+
+    # Configure rate limiting
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri="memory://",
+    )
+
+    logger.info("Info Sur application initialized")
 
     @app.route("/")
     def index() -> Response:
@@ -43,9 +63,21 @@ def create_app() -> Flask:
 
     @app.route("/images/<path:filename>")
     def images(filename: str):
+        # Validate file extension for security
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'}
+        file_ext = Path(filename).suffix.lower()
+        if file_ext not in allowed_extensions:
+            raise NotFound("Invalid file type")
+
         images_dir = Path("data/images")
         if not images_dir.exists():
             raise NotFound()
+
+        # Prevent directory traversal
+        file_path = (images_dir / filename).resolve()
+        if not str(file_path).startswith(str(images_dir.resolve())):
+            raise NotFound("Invalid path")
+
         return send_from_directory(images_dir, filename)
 
     # API endpoints
@@ -54,6 +86,7 @@ def create_app() -> Flask:
         return jsonify(list_articles())
 
     @app.route("/api/articles", methods=["POST"])
+    @limiter.limit("10 per hour")  # Limit article generation to prevent API abuse
     def api_create_article():
         data = request.get_json(force=True)
         prompt = data.get("prompt")
@@ -62,9 +95,12 @@ def create_app() -> Flask:
         if not prompt:
             raise BadRequest("El prompt es obligatorio")
 
+        logger.info(f"Creating article with prompt: {prompt[:50]}...")
+
         try:
             generation = generate_article_via_openai(prompt, satire_level, image_prompts)
         except RuntimeError as exc:
+            logger.error(f"Failed to generate article: {exc}")
             raise BadRequest(str(exc)) from exc
         modules = generation["modules"]
 
@@ -82,6 +118,8 @@ def create_app() -> Flask:
             image_urls=generation.get("image_urls", {}),
             image_metadata=generation.get("image_metadata", {}),
         )
+
+        logger.info(f"Article created successfully: {article.slug}")
 
         return jsonify({
             "id": article.id,

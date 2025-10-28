@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from bs4 import BeautifulSoup
@@ -45,7 +45,7 @@ def slugify(value: str) -> str:
 
 
 def current_timestamp() -> str:
-    return datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    return datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
 
 
 def ensure_template(session) -> TemplateRevision:
@@ -131,16 +131,18 @@ Devuelve un JSON con la siguiente estructura:
 """
 
     try:
-        response = client.responses.create(
-            model="gpt-4.1",
+        response = client.chat.completions.create(
+            model="gpt-4o",
             temperature=0.7,
             top_p=0.9,
-            max_output_tokens=1200,
-            system=system_prompt,
-            input=user_prompt,
+            max_tokens=1200,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
             response_format={"type": "json_object"},
         )
-        content = response.output[0].content[0].text
+        content = response.choices[0].message.content
         data = json.loads(content)
     except Exception as exc:
         raise RuntimeError("No se pudo generar el artículo con OpenAI") from exc
@@ -165,9 +167,11 @@ Devuelve un JSON con la siguiente estructura:
             image_prompt = f"Ilustración satírica estilo fotoperiodismo andaluz. Contexto del artículo: {prompt}. Detalle: {prompt_text}."
             try:
                 image_response = client.images.generate(
-                    model="gpt-image-1",
+                    model="dall-e-3",
                     prompt=image_prompt,
                     size="1024x1024",
+                    quality="standard",
+                    n=1,
                 )
                 image_data = image_response.data[0]
                 image_urls["primary" if idx == 0 else "secondary"] = image_data.url
@@ -271,7 +275,7 @@ def update_article(article_id: int, payload: Dict[str, Any]) -> Optional[Article
             article.article_data["image_prompts"] = payload["image_prompts"]
         if "image_data" in payload:
             article.image_data.update(payload["image_data"])
-        article.updated_at = datetime.utcnow()
+        article.updated_at = datetime.now(timezone.utc)
         session.add(article)
         session.flush()
         session.refresh(article)
